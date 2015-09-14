@@ -1,0 +1,401 @@
+du /scratch/meng/gwac/dbfarm -sh
+1.5T	/scratch/meng/gwac/dbfarm
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+2401
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2401) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2401 0 seconds
+2402
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2402) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2402 0 seconds
+2403
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2403) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2403 0 seconds
+2404
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2404) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2404 0 seconds
+2405
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2405) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2405 0 seconds
+2406
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2406) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2406 0 seconds
+2407
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2407) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2407 0 seconds
+2408
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2408) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2408 0 seconds
+2409
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2409) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2409 0 seconds
+2410
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2410) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2410 0 seconds
+2411
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2411) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2411 0 seconds
+2412
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2412) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2412 0 seconds
+2413
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2413) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2413 0 seconds
+2414
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2414) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2414 0 seconds
+2415
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2415) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2415 0 seconds
+2416
+Sat Jul 11 00:07:34 CEST 2015
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL flag_n_to_m_tempunique() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i onetomany.sql 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: CALL update_1_to_1_uniq() 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: insert_new_uniq(2416) 0.00
+monetdbd: an internal error has occurred, refer to the logs for details, please try again later
+
+Time: mclient gwacdb -e -i newsource.sql 0.00
+Time for image2416 0 seconds
+2417
+Sat Jul 11 00:07:34 CEST 2015

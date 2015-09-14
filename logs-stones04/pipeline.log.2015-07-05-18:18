@@ -1,0 +1,1019 @@
+du /scratch/meng/gwac/dbfarm -sh
+1.3T	/scratch/meng/gwac/dbfarm
+DROP TABLE tempuniquecatalog CASCADE;
+operation successful
+create table tempuniquecatalog(uniqueid bigint, targetid bigint, distance_arcsec double, datapoints int, zone smallint, ra_avg double, decl_avg double, x double, y double, z double, flux_ref double, flux_tgs double, inactive BOOLEAN);
+operation successful
+CREATE PROCEDURE flag_n_to_m_tempunique()
+BEGIN
+UPDATE tempuniquecatalog SET INACTIVE = FALSE;    
+
+UPDATE tempuniquecatalog
+SET INACTIVE = TRUE
+WHERE EXISTS (SELECT uniqueid,
+                     targetid
+              FROM (SELECT t1.uniqueid,
+                           t1.targetid
+                      FROM (SELECT targetid,
+                                   MIN(distance_arcsec) as min_d
+                              FROM tempuniquecatalog
+				WHERE  uniqueid IN ( select uniqueid
+						       from tempuniquecatalog
+operation successful (510.532ms)
+CREATE procedure update_1_to_1_uniq()
+BEGIN
+UPDATE uniquecatalog3
+           SET datapoints = (SELECT datapoints  
+                               FROM tempuniquecatalog
+                              WHERE tempuniquecatalog.uniqueid = uniquecatalog3.id
+                              AND tempuniquecatalog.inactive = FALSE
+                             )
+              ,zone = (SELECT zone
+                         FROM tempuniquecatalog
+                        WHERE tempuniquecatalog.uniqueid = uniquecatalog3.id
+operation successful (497.969ms)
+create function distance_sin(uid int, tid int)
+RETURNS double
+BEGIN
+declare x1,y1,z1,x2,y2,z2 double;
+SET x1=(select x from uniquecatalog3 where id=uid);
+SET y1=(select y from uniquecatalog3 where id=uid);
+SET z1=(select z from uniquecatalog3 where id=uid);
+SET x2=(select x from targets3 where id=tid);
+SET y2=(select y from targets3 where id=tid);
+SET z2=(select z from targets3 where id=tid);
+RETURN 3600*DEGREES(2*ASIN(SQRT( (x1 - x2) * (x1 - x2)+
+                          (y1 - y2) * (y1 - y2)+
+                          (z1 - z2) * (z1 - z2)
+operation successful (541.739ms)
+CREATE FUNCTION: name 'associates' (int(32), double(53)) already in use
+36001
+Sun Jul  5 18:17:01 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36001,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 2.67
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+8 affected rows (130.482ms)
+DELETE FROM new_to_new;
+8 affected rows (190.507ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.679ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.854ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.183ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.492ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.790ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.638ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.610ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.986ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.42
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36001 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36001) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.203ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (2.728ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.846ms)
+Time: mclient gwacdb -e -i newsource.sql 0.07
+Time for image36001 4 seconds
+36002
+Sun Jul  5 18:17:05 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36002,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.57
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+0 affected rows (251.573ms)
+DELETE FROM new_to_new;
+0 affected rows (173.521ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.824ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (5.086ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.404ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (1.653ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (2.014ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.872ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.651ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.993ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.44
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36002 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36002) 53.82
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (3.846ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.315ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.967ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36002 56 seconds
+36003
+Sun Jul  5 18:18:01 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36003,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.80
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (262.623ms)
+DELETE FROM new_to_new;
+0 affected rows (242.669ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (3.714ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.926ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (4.686ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.826ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.820ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (1.760ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.629ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.966ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.53
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36003 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36003) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (1.969ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.616ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.742ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36003 1 seconds
+36004
+Sun Jul  5 18:18:02 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36004,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.79
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+0 affected rows (306.079ms)
+DELETE FROM new_to_new;
+0 affected rows (258.337ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.585ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.828ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.322ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.617ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.897ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (2.744ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.634ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.885ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.58
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36004 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36004) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.281ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.947ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.903ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36004 2 seconds
+36005
+Sun Jul  5 18:18:04 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36005,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.43
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (50.592ms)
+DELETE FROM new_to_new;
+0 affected rows (33.663ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (1.472ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (4.285ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.301ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.432ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.905ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.868ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.603ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.922ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.10
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36005 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36005) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.522ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.720ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.840ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36005 1 seconds
+36006
+Sun Jul  5 18:18:05 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36006,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.54
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (139.737ms)
+DELETE FROM new_to_new;
+0 affected rows (118.496ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (4.500ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.554ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (4.474ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.318ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.716ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.589ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.553ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.866ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.28
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36006 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36006) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.194ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (1.528ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.843ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36006 2 seconds
+36007
+Sun Jul  5 18:18:07 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36007,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.61
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+0 affected rows (205.531ms)
+DELETE FROM new_to_new;
+0 affected rows (173.256ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.704ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.838ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.452ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.431ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.993ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.705ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.618ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.918ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.40
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36007 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36007) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.228ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.961ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.856ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36007 1 seconds
+36008
+Sun Jul  5 18:18:08 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36008,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.82
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (268.961ms)
+DELETE FROM new_to_new;
+0 affected rows (241.557ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (3.792ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.445ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.369ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.691ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.701ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.650ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.575ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (3.118ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.53
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36008 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36008) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.208ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.035ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (3.168ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36008 2 seconds
+36009
+Sun Jul  5 18:18:10 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36009,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.74
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+0 affected rows (264.157ms)
+DELETE FROM new_to_new;
+0 affected rows (241.661ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (3.861ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.156ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.300ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.429ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.737ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.642ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.593ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.870ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.52
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36009 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36009) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.227ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (2.695ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.775ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36009 2 seconds
+36010
+Sun Jul  5 18:18:12 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36010,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.85
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (286.159ms)
+DELETE FROM new_to_new;
+0 affected rows (240.321ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.754ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.883ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.640ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.799ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.736ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.613ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (1.627ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.957ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.55
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36010 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36010) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.275ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.938ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.822ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36010 2 seconds
+36011
+Sun Jul  5 18:18:14 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36011,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.70
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (257.755ms)
+DELETE FROM new_to_new;
+0 affected rows (149.403ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (1.690ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.779ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.211ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.902ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.760ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.653ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (1.668ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.912ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.43
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36011 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36011) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.313ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (2.588ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.805ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36011 2 seconds
+36012
+Sun Jul  5 18:18:16 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36012,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.51
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (156.345ms)
+DELETE FROM new_to_new;
+0 affected rows (154.312ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.554ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.805ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.360ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.676ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.881ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (1.755ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.549ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.837ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.33
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36012 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36012) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.226ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.940ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.918ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36012 1 seconds
+36013
+Sun Jul  5 18:18:17 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36013,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.83
+Time: CALL flag_n_to_m_tempunique() 0.02
+DELETE FROM one_to_many;
+0 affected rows (313.850ms)
+DELETE FROM new_to_new;
+0 affected rows (260.600ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.713ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.994ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.511ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.631ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.879ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.704ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.600ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.869ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.59
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36013 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36013) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (3.512ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.057ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.872ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36013 2 seconds
+36014
+Sun Jul  5 18:18:19 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36014,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.61
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (64.792ms)
+DELETE FROM new_to_new;
+0 affected rows (65.774ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.621ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.880ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (1.418ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.434ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.870ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.747ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.569ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.967ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.15
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36014 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36014) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (3.462ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (2.585ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.864ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36014 1 seconds
+36015
+Sun Jul  5 18:18:20 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36015,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.50
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (98.651ms)
+DELETE FROM new_to_new;
+0 affected rows (120.429ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.541ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.620ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.314ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.560ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.797ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.692ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.659ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.905ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.24
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36015 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36015) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.228ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.790ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.797ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36015 1 seconds
+36016
+Sun Jul  5 18:18:21 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36016,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.59
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (220.312ms)
+DELETE FROM new_to_new;
+0 affected rows (217.434ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (1.522ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (2.630ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.345ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.541ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.727ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.674ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.576ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.920ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.45
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36016 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36016) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (3.314ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.081ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.959ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36016 2 seconds
+36017
+Sun Jul  5 18:18:23 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36017,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.76
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (210.592ms)
+DELETE FROM new_to_new;
+0 affected rows (257.978ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.711ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.117ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.621ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.971ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.786ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.691ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.574ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (2.024ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.49
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36017 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36017) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.518ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.103ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.879ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36017 2 seconds
+36018
+Sun Jul  5 18:18:25 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36018,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.90
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (239.252ms)
+DELETE FROM new_to_new;
+0 affected rows (233.299ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.775ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (6.243ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.277ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.476ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.791ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.765ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (1.695ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (2.043ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.49
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36018 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36018) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.521ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.046ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.926ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36018 2 seconds
+36019
+Sun Jul  5 18:18:27 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36019,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.80
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (324.295ms)
+DELETE FROM new_to_new;
+0 affected rows (183.286ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.799ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (4.199ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.591ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.854ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.891ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.769ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.692ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.959ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.53
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36019 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36019) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.355ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.202ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (4.193ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36019 2 seconds
+36020
+Sun Jul  5 18:18:29 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36020,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.70
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (191.341ms)
+DELETE FROM new_to_new;
+0 affected rows (55.736ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (1.450ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (3.954ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (4.615ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (2.766ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.813ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.693ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.593ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (1.931ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.27
+Time: CALL update_1_to_1_uniq() 0.02
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36020 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36020) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.459ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.923ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.821ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36020 1 seconds
+36021
+Sun Jul  5 18:18:30 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36021,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 14.07
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (172.914ms)
+DELETE FROM new_to_new;
+0 affected rows (125.270ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.687ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (4.848ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (2.215ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (1.608ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (0.811ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.740ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (0.624ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (0.953ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.31
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36021 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36021) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.474ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (5.212ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (1.882ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36021 15 seconds
+36022
+Sun Jul  5 18:18:45 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36022,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.75
+Time: CALL flag_n_to_m_tempunique() 0.01
+DELETE FROM one_to_many;
+0 affected rows (268.132ms)
+DELETE FROM new_to_new;
+0 affected rows (208.373ms)
+INSERT INTO one_to_many(old_uniqueid, new_targetid, distance_arcsec) SELECT t.uniqueid, t.targetid, t.distance_arcsec FROM tempuniquecatalog t, ( SELECT uniqueid FROM tempuniquecatalog WHERE inactive = FALSE GROUP BY uniqueid HAVING COUNT(*) > 1) t0 WHERE t0.uniqueid = t.uniqueid and t.inactive=false ORDER BY uniqueid, targetid;
+0 affected rows (2.813ms)
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT targetid, datapoints, zone, ra_avg, decl_avg, flux_ref, x, y, z, FALSE from (select distinct old_uniqueid from one_to_many) o,tempuniquecatalog t  where t.uniqueid = o.old_uniqueid and t.inactive = FALSE ;
+0 affected rows (4.448ms)
+UPDATE uniquecatalog3 SET inactive = TRUE WHERE id IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (3.668ms)
+INSERT INTO new_to_new SELECT u.id AS uniqueid, u.targetid, one_to_many.distance_arcsec FROM uniquecatalog3 u, one_to_many WHERE u.targetid = one_to_many.new_targetid ORDER BY uniqueid, targetid;
+0 affected rows (3.515ms)
+INSERT INTO uidlegacy(old_uid, new_uid) select o.old_uniqueid, n.uniqueid from one_to_many o, new_to_new n where o.new_targetid = n.targetid;
+0 affected rows (1.933ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT uniqueid, targetid, distance_arcsec,2 FROM new_to_new;
+0 affected rows (0.701ms)
+UPDATE tempuniquecatalog  SET inactive = TRUE  WHERE uniqueid IN (SELECT old_uniqueid FROM one_to_many);
+0 affected rows (1.691ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT t.uniqueid, t.targetid, t.distance_arcsec, 3 FROM tempuniquecatalog t WHERE t.inactive = FALSE order by uniqueid, targetid;
+0 affected rows (2.007ms)
+Time: mclient gwacdb -e -i onetomany.sql 0.50
+Time: CALL update_1_to_1_uniq() 0.01
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36022 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36022) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (3.263ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (3.802ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (0.844ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36022 2 seconds
+36023
+Sun Jul  5 18:18:47 CEST 2015
+DELETE FROM tempuniquecatalog;
+0 affected rows
+INSERT INTO tempuniquecatalog SELECT * FROM associates(36023,.00166666666666666666)
+0 affected rows
+Time: INSERT INTO tempuniquecatalog SELECT associates() 0.93
+Time: CALL flag_n_to_m_tempunique() 0.01
+Time: CALL update_1_to_1_uniq() 0.03
+DELETE FROM newsrc;
+0 affected rows
+INSERT INTO newsrc SELECT t.id AS targetid FROM targets3 t LEFT OUTER JOIN tempuniquecatalog tuc ON t.id = tuc.targetid WHERE t.imageid = 36023 AND tuc.targetid IS NULL ORDER BY t.id;
+0 affected rows
+Time: insert_new_uniq(36023) 0.01
+INSERT INTO uniquecatalog3(targetid,datapoints,zone,ra_avg,decl_avg,flux_ref,x,y,z,inactive) SELECT t.id AS targetid, 1 AS datapoints ,t.zone, t.ra AS ra_avg, t."dec" AS decl_avg, t.flux AS flux_ref, t.x, t.y, t.z, FALSE FROM newsrc, targets3 t WHERE newsrc.targetid = t.id;
+0 affected rows (2.307ms)
+INSERT INTO associatedsource(uniqueid, targetid, distance_arcsec, type) SELECT u.id AS uniqueid, newsrc.targetid, 0, 4 FROM newsrc, uniquecatalog3 u WHERE newsrc.targetid = u.targetid;
+0 affected rows (4.057ms)
+DELETE FROM uniquecatalog3 WHERE inactive = TRUE;
+0 affected rows (3.100ms)
+Time: mclient gwacdb -e -i newsource.sql 0.01
+Time for image36023 2 seconds
+36024
+Sun Jul  5 18:18:49 CEST 2015
